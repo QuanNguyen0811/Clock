@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đồng Hồ Đa Năng Modern Clock</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Orbitron -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        digital: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        accent: {
+                            DEFAULT: '#3b82f6',
+                            glow: 'rgba(59, 130, 246, 0.5)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent-color: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+        }
+
+        .bg-accent { background-color: var(--accent-color) !important; }
+        .text-accent { color: var(--accent-color) !important; }
+        .border-accent { border-color: var(--accent-color) !important; }
+        .shadow-accent { box-shadow: 0 10px 25px -5px var(--accent-glow) !important; }
+
+        /* Glassmorphism effects */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .light .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        }
+
+        /* Analog Clock Styling */
+        .clock-face {
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 0 10px 30px var(--accent-glow);
+        }
+
+        .hand {
+            transform-origin: 50% 100%;
+            transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+        }
+
+        .smooth-second {
+            transition: transform 0.2s linear;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(150, 150, 150, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans transition-colors duration-500 overflow-x-hidden selection:bg-blue-500 selection:text-white dark:bg-slate-950 dark:text-slate-100 light:bg-slate-100 light:text-slate-800" id="app-body">
+
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-600/20 blur-[120px] transition-all duration-700" id="glow1"></div>
+        <div class="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-purple-600/20 blur-[120px] transition-all duration-700" id="glow2"></div>
+        <div class="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-indigo-600/20 blur-[120px] transition-all duration-700" id="glow3"></div>
+    </div>
+
+    <div class="relative z-10 flex flex-col min-h-screen">
+        <!-- Top Navbar -->
+        <header class="p-4 md:px-8 flex justify-between items-center border-b border-white/10 glass-card rounded-b-2xl mx-2 md:mx-6 mt-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center text-xl shadow-lg shadow-accent">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">ChronoStudio</h1>
+                    <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500" id="location-tz">Múi giờ: GMT+7 (Hà Nội)</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2 md:gap-4">
+                <!-- Theme Color Selector Dropdown -->
+                <div class="relative group">
+                    <button class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-sm hover:scale-105 transition-transform" title="Chọn màu chủ đạo">
+                        <span class="w-4 h-4 rounded-full bg-accent inline-block"></span>
+                    </button>
+                    <div class="absolute right-0 top-11 hidden group-hover:flex flex-col gap-2 p-3 glass-card rounded-xl shadow-xl z-50">
+                        <div class="text-xs font-semibold mb-1 text-center text-slate-400">Màu sắc</div>
+                        <div class="flex gap-2">
+                            <button onclick="setAccentColor('#3b82f6', 'rgba(59, 130, 246, 0.4)')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-125 transition-transform"></button>
+                            <button onclick="setAccentColor('#10b981', 'rgba(16, 185, 129, 0.4)')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-125 transition-transform"></button>
+                            <button onclick="setAccentColor('#8b5cf6', 'rgba(139, 92, 246, 0.4)')" class="w-6 h-6 rounded-full bg-purple-500 hover:scale-125 transition-transform"></button>
+                            <button onclick="setAccentColor('#f43f5e', 'rgba(244, 63, 94, 0.4)')" class="w-6 h-6 rounded-full bg-rose-500 hover:scale-125 transition-transform"></button>
+                            <button onclick="setAccentColor('#f59e0b', 'rgba(245, 158, 11, 0.4)')" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-125 transition-transform"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark/Light Toggle -->
+                <button id="theme-toggle" onclick="toggleTheme()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:scale-105 transition-transform" title="Chuyển chế độ Sáng/Tối">
+                    <i class="fa-solid fa-moon text-yellow-400 dark:inline hidden"></i>
+                    <i class="fa-solid fa-sun text-amber-500 dark:hidden inline"></i>
+                </button>
+
+                <!-- Fullscreen Toggle -->
+                <button onclick="toggleFullScreen()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:scale-105 transition-transform" title="Toàn màn hình">
+                    <i class="fa-solid fa-expand text-slate-300 dark:text-slate-300 light:text-slate-700"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="flex justify-center my-6 px-4">
+            <div class="flex p-1 glass-card rounded-2xl gap-1 md:gap-2 max-w-full overflow-x-auto">
+                <button onclick="switchTab('clock')" id="tab-clock" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 bg-accent text-white shadow-accent">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Xem Đồng Hồ</span>
+                </button>
+                <button onclick="switchTab('stopwatch')" id="tab-stopwatch" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span>Bấm Giờ</span>
+                </button>
+                <button onclick="switchTab('timer')" id="tab-timer" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <span>Đếm Ngược</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="flex-grow flex items-center justify-center p-4">
+            <!-- TAB 1: CLOCK VIEW -->
+            <div id="view-clock" class="tab-content w-full max-w-4xl flex flex-col items-center gap-8">
+                
+                <!-- Format Switcher & Options -->
+                <div class="flex items-center gap-4 text-xs font-semibold tracking-wider uppercase text-slate-400">
+                    <button onclick="toggleTimeFormat(12)" id="btn-12h" class="px-3 py-1.5 rounded-lg glass-card transition-all">12 Giờ</button>
+                    <button onclick="toggleTimeFormat(24)" id="btn-24h" class="px-3 py-1.5 rounded-lg glass-card bg-accent text-white shadow-accent transition-all">24 Giờ</button>
+                    <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                    <button onclick="toggleAnalogClock()" id="btn-toggle-analog" class="px-3 py-1.5 rounded-lg glass-card transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-eye text-accent"></i> Đồng hồ Kim
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-center justify-items-center">
+                    
+                    <!-- Digital Clock Display -->
+                    <div class="glass-card p-8 md:p-10 rounded-3xl w-full flex flex-col items-center justify-center text-center relative overflow-hidden group border border-white/10">
+                        <div class="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-accent/10 blur-xl"></div>
+                        
+                        <!-- Date Display -->
+                        <div id="date-display" class="text-base md:text-lg text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium mb-2 tracking-wide">
+                            Đang tải ngày...
+                        </div>
+
+                        <!-- Time Display -->
+                        <div class="flex items-baseline justify-center my-2 font-digital tracking-tight">
+                            <span id="time-hours-mins" class="text-6xl md:text-7xl font-extrabold text-slate-100 dark:text-slate-100 light:text-slate-800">00:00</span>
+                            <span id="time-seconds" class="text-2xl md:text-3xl font-bold text-accent ml-2">00</span>
+                            <span id="time-ampm" class="text-lg font-bold text-slate-400 ml-2 hidden">AM</span>
+                        </div>
+
+                        <!-- Timezone Badge -->
+                        <div class="mt-4 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-earth-asia text-accent"></i>
+                            <span id="full-date-vn">Thứ ..., ngày ... tháng ... năm ...</span>
+                        </div>
+                    </div>
+
+                    <!-- Analog Clock Display -->
+                    <div id="analog-container" class="glass-card p-8 rounded-3xl flex items-center justify-center relative w-full aspect-square max-w-[320px]">
+                        <div class="clock-face w-full h-full rounded-full border-4 border-white/10 relative flex items-center justify-center bg-slate-900/40">
+                            <!-- Clock Markings -->
+                            <div class="absolute inset-2">
+                                <span class="absolute top-1 left-1/2 -translate-x-1/2 font-bold text-sm text-slate-400">12</span>
+                                <span class="absolute right-1 top-1/2 -translate-y-1/2 font-bold text-sm text-slate-400">3</span>
+                                <span class="absolute bottom-1 left-1/2 -translate-x-1/2 font-bold text-sm text-slate-400">6</span>
+                                <span class="absolute left-1 top-1/2 -translate-y-1/2 font-bold text-sm text-slate-400">9</span>
+                            </div>
+
+                            <!-- Clock Center Dot -->
+                            <div class="w-4 h-4 rounded-full bg-accent z-30 shadow-lg shadow-accent"></div>
+
+                            <!-- Clock Hands -->
+                            <div id="hour-hand" class="hand absolute w-1.5 h-16 bg-slate-200 rounded-full top-[calc(50%-64px)] z-10 origin-bottom"></div>
+                            <div id="min-hand" class="hand absolute w-1 h-24 bg-slate-400 rounded-full top-[calc(50%-96px)] z-10 origin-bottom"></div>
+                            <div id="sec-hand" class="hand smooth-second absolute w-0.5 h-28 bg-accent rounded-full top-[calc(50%-112px)] z-20 origin-bottom"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 2: STOPWATCH VIEW -->
+            <div id="view-stopwatch" class="tab-content w-full max-w-xl hidden flex-col items-center">
+                <div class="glass-card p-8 md:p-10 rounded-3xl w-full flex flex-col items-center text-center">
+                    <!-- Stopwatch Time -->
+                    <div class="font-digital text-5xl md:text-6xl font-bold my-6 tracking-wider text-slate-100 dark:text-slate-100 light:text-slate-800">
+                        <span id="sw-minutes">00</span>:<span id="sw-seconds">00</span>.<span id="sw-ms" class="text-accent text-3xl md:text-4xl">00</span>
+                    </div>
+
+                    <!-- Stopwatch Controls -->
+                    <div class="flex items-center gap-4 my-4">
+                        <button id="sw-start-btn" onclick="startStopwatch()" class="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-xl shadow-lg shadow-accent hover:scale-105 active:scale-95 transition-all">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button id="sw-lap-btn" onclick="lapStopwatch()" disabled class="w-12 h-12 rounded-full glass-card text-slate-400 flex items-center justify-center text-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:hover:scale-100">
+                            <i class="fa-solid fa-flag"></i>
+                        </button>
+                        <button id="sw-reset-btn" onclick="resetStopwatch()" disabled class="w-12 h-12 rounded-full glass-card text-slate-400 flex items-center justify-center text-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:hover:scale-100">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+
+                    <!-- Lap Times List -->
+                    <div class="w-full mt-6 border-t border-white/10 pt-4 max-h-48 overflow-y-auto px-2">
+                        <table class="w-full text-sm text-left text-slate-400">
+                            <thead class="text-xs uppercase border-b border-white/10 text-slate-500">
+                                <tr>
+                                    <th class="py-2">Vòng</th>
+                                    <th class="py-2 text-right">Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sw-laps-body">
+                                <!-- Lap items dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: TIMER VIEW -->
+            <div id="view-timer" class="tab-content w-full max-w-xl hidden flex-col items-center">
+                <div class="glass-card p-8 md:p-10 rounded-3xl w-full flex flex-col items-center text-center">
+                    
+                    <!-- Timer Display / Circular Progress -->
+                    <div class="relative w-64 h-64 flex items-center justify-center my-4">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="44" stroke="currentColor" stroke-width="6" class="text-slate-800 dark:text-slate-800 light:text-slate-200" fill="transparent" />
+                            <circle id="timer-progress-ring" cx="50" cy="50" r="44" stroke="currentColor" stroke-width="6" class="text-accent transition-all duration-300" stroke-dasharray="276.46" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" />
+                        </svg>
+
+                        <!-- Display Inner Content -->
+                        <div class="absolute flex flex-col items-center">
+                            <div id="timer-display" class="font-digital text-4xl font-bold text-slate-100 dark:text-slate-100 light:text-slate-800">
+                                00:00:00
+                            </div>
+                            <span id="timer-status" class="text-xs text-slate-400 mt-2">Sẵn sàng</span>
+                        </div>
+                    </div>
+
+                    <!-- Input Controls (When Timer Stopped) -->
+                    <div id="timer-inputs" class="flex items-center gap-2 my-4">
+                        <div class="flex flex-col items-center">
+                            <input type="number" id="tm-hours" min="0" max="23" value="0" class="w-16 h-12 rounded-xl glass-card text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent">
+                            <label class="text-[10px] text-slate-400 mt-1 uppercase">Giờ</label>
+                        </div>
+                        <span class="text-xl font-bold text-slate-500">:</span>
+                        <div class="flex flex-col items-center">
+                            <input type="number" id="tm-mins" min="0" max="59" value="05" class="w-16 h-12 rounded-xl glass-card text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent">
+                            <label class="text-[10px] text-slate-400 mt-1 uppercase">Phút</label>
+                        </div>
+                        <span class="text-xl font-bold text-slate-500">:</span>
+                        <div class="flex flex-col items-center">
+                            <input type="number" id="tm-secs" min="0" max="59" value="00" class="w-16 h-12 rounded-xl glass-card text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-accent">
+                            <label class="text-[10px] text-slate-400 mt-1 uppercase">Giây</label>
+                        </div>
+                    </div>
+
+                    <!-- Quick Presets -->
+                    <div class="flex gap-2 my-2">
+                        <button onclick="setTimerPreset(1)" class="px-3 py-1 rounded-lg glass-card text-xs hover:bg-white/10 transition-colors">+1 Phút</button>
+                        <button onclick="setTimerPreset(5)" class="px-3 py-1 rounded-lg glass-card text-xs hover:bg-white/10 transition-colors">+5 Phút</button>
+                        <button onclick="setTimerPreset(10)" class="px-3 py-1 rounded-lg glass-card text-xs hover:bg-white/10 transition-colors">+10 Phút</button>
+                        <button onclick="setTimerPreset(25)" class="px-3 py-1 rounded-lg glass-card text-xs hover:bg-white/10 transition-colors">25 Phút (Pomodoro)</button>
+                    </div>
+
+                    <!-- Timer Action Buttons -->
+                    <div class="flex items-center gap-4 mt-6">
+                        <button id="tm-start-btn" onclick="startTimer()" class="w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center text-xl shadow-lg shadow-accent hover:scale-105 active:scale-95 transition-all">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button id="tm-reset-btn" onclick="resetTimer()" class="w-12 h-12 rounded-full glass-card text-slate-400 flex items-center justify-center text-lg hover:scale-105 active:scale-95 transition-all">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="p-4 text-center text-xs text-slate-500">
+            Đồng hồ thời gian thực • Thiết kế với Tailwind CSS & JavaScript
+        </footer>
+    </div>
+
+    <!-- Audio Element for Alarm Tone (Web Audio API fallback implemented) -->
+    <audio id="alarm-sound" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        /* ----------------------------------------------------
+         * GLOBAL APP STATE & VARIABLES
+         * ---------------------------------------------------- */
+        let is12HourFormat = false;
+        let showAnalog = true;
+        let currentTheme = 'dark';
+
+        /* Stopwatch State */
+        let swInterval = null;
+        let swStartTime = 0;
+        let swElapsedTime = 0;
+        let swIsRunning = false;
+        let swLapCount = 0;
+
+        /* Timer State */
+        let tmInterval = null;
+        let tmTotalSeconds = 0;
+        let tmRemainingSeconds = 0;
+        let tmIsRunning = false;
+        const ringCircle = document.getElementById('timer-progress-ring');
+        const circumference = 2 * Math.PI * 44; // r = 44
+
+        /* ----------------------------------------------------
+         * INITIALIZATION ON LOAD
+         * ---------------------------------------------------- */
+        window.onload = function() {
+            initClock();
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Set default timer progress ring stroke dash
+            ringCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            ringCircle.style.strokeDashoffset = 0;
+        };
+
+        /* ----------------------------------------------------
+         * DIGITAL & ANALOG CLOCK LOGIC
+         * ---------------------------------------------------- */
+        function initClock() {
+            // Initial render
+        }
+
+        function updateClock() {
+            const now = new Date();
+
+            // 1. Digital Clock Update
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            let ampmStr = '';
+
+            if (is12HourFormat) {
+                ampmStr = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // hour 0 should be 12
+            }
+            const hoursStr = String(hours).padStart(2, '0');
+
+            document.getElementById('time-hours-mins').textContent = `${hoursStr}:${minutes}`;
+            document.getElementById('time-seconds').textContent = seconds;
+            
+            const ampmEl = document.getElementById('time-ampm');
+            if (is12HourFormat) {
+                ampmEl.textContent = ampmStr;
+                ampmEl.classList.remove('hidden');
+            } else {
+                ampmEl.classList.add('hidden');
+            }
+
+            // Vietnamese Date Formatting
+            const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            const dayName = daysOfWeek[now.getDay()];
+            const day = now.getDate();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+
+            document.getElementById('date-display').textContent = `${dayName}, ${day} tháng ${month}, ${year}`;
+            document.getElementById('full-date-vn').textContent = `${dayName}, ${day}/${month}/${year}`;
+
+            // 2. Analog Clock Update
+            const secDeg = (now.getSeconds() / 60) * 360;
+            const minDeg = ((now.getMinutes() + now.getSeconds() / 60) / 60) * 360;
+            const hourDeg = (((now.getHours() % 12) + now.getMinutes() / 60) / 12) * 360;
+
+            document.getElementById('sec-hand').style.transform = `rotate(${secDeg}deg)`;
+            document.getElementById('min-hand').style.transform = `rotate(${minDeg}deg)`;
+            document.getElementById('hour-hand').style.transform = `rotate(${hourDeg}deg)`;
+        }
+
+        function toggleTimeFormat(format) {
+            is12HourFormat = (format === 12);
+            const btn12 = document.getElementById('btn-12h');
+            const btn24 = document.getElementById('btn-24h');
+
+            if (is12HourFormat) {
+                btn12.classList.add('bg-accent', 'text-white', 'shadow-accent');
+                btn24.classList.remove('bg-accent', 'text-white', 'shadow-accent');
+            } else {
+                btn24.classList.add('bg-accent', 'text-white', 'shadow-accent');
+                btn12.classList.remove('bg-accent', 'text-white', 'shadow-accent');
+            }
+            updateClock();
+        }
+
+        function toggleAnalogClock() {
+            showAnalog = !showAnalog;
+            const container = document.getElementById('analog-container');
+            if (showAnalog) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        /* ----------------------------------------------------
+         * STOPWATCH LOGIC
+         * ---------------------------------------------------- */
+        function startStopwatch() {
+            const startBtn = document.getElementById('sw-start-btn');
+            const lapBtn = document.getElementById('sw-lap-btn');
+            const resetBtn = document.getElementById('sw-reset-btn');
+
+            if (!swIsRunning) {
+                swIsRunning = true;
+                swStartTime = Date.now() - swElapsedTime;
+                swInterval = setInterval(updateStopwatch, 10);
+
+                startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                startBtn.classList.replace('bg-accent', 'bg-amber-500');
+                lapBtn.disabled = false;
+                resetBtn.disabled = false;
+            } else {
+                swIsRunning = false;
+                clearInterval(swInterval);
+
+                startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                startBtn.classList.replace('bg-amber-500', 'bg-accent');
+            }
+        }
+
+        function updateStopwatch() {
+            swElapsedTime = Date.now() - swStartTime;
+
+            const ms = Math.floor((swElapsedTime % 1000) / 10);
+            const secs = Math.floor((swElapsedTime / 1000) % 60);
+            const mins = Math.floor((swElapsedTime / (1000 * 60)) % 60);
+
+            document.getElementById('sw-ms').textContent = String(ms).padStart(2, '0');
+            document.getElementById('sw-seconds').textContent = String(secs).padStart(2, '0');
+            document.getElementById('sw-minutes').textContent = String(mins).padStart(2, '0');
+        }
+
+        function lapStopwatch() {
+            if (!swIsRunning) return;
+            swLapCount++;
+            const ms = document.getElementById('sw-ms').textContent;
+            const secs = document.getElementById('sw-seconds').textContent;
+            const mins = document.getElementById('sw-minutes').textContent;
+
+            const tbody = document.getElementById('sw-laps-body');
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-white/5 hover:bg-white/5';
+            tr.innerHTML = `
+                <td class="py-2">Vòng ${swLapCount}</td>
+                <td class="py-2 text-right font-digital">${mins}:${secs}.${ms}</td>
+            `;
+            tbody.prepend(tr);
+        }
+
+        function resetStopwatch() {
+            clearInterval(swInterval);
+            swIsRunning = false;
+            swElapsedTime = 0;
+            swLapCount = 0;
+
+            document.getElementById('sw-ms').textContent = '00';
+            document.getElementById('sw-seconds').textContent = '00';
+            document.getElementById('sw-minutes').textContent = '00';
+            document.getElementById('sw-laps-body').innerHTML = '';
+
+            const startBtn = document.getElementById('sw-start-btn');
+            startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            startBtn.classList.replace('bg-amber-500', 'bg-accent');
+
+            document.getElementById('sw-lap-btn').disabled = true;
+            document.getElementById('sw-reset-btn').disabled = true;
+        }
+
+        /* ----------------------------------------------------
+         * TIMER LOGIC
+         * ---------------------------------------------------- */
+        function startTimer() {
+            const startBtn = document.getElementById('tm-start-btn');
+
+            if (!tmIsRunning) {
+                if (tmRemainingSeconds <= 0) {
+                    const hrs = parseInt(document.getElementById('tm-hours').value) || 0;
+                    const mins = parseInt(document.getElementById('tm-mins').value) || 0;
+                    const secs = parseInt(document.getElementById('tm-secs').value) || 0;
+
+                    tmTotalSeconds = (hrs * 3600) + (mins * 60) + secs;
+                    tmRemainingSeconds = tmTotalSeconds;
+                }
+
+                if (tmTotalSeconds <= 0) return;
+
+                tmIsRunning = true;
+                tmInterval = setInterval(updateTimer, 1000);
+
+                startBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                startBtn.classList.replace('bg-accent', 'bg-amber-500');
+                document.getElementById('timer-status').textContent = 'Đang đếm ngược';
+            } else {
+                tmIsRunning = false;
+                clearInterval(tmInterval);
+
+                startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                startBtn.classList.replace('bg-amber-500', 'bg-accent');
+                document.getElementById('timer-status').textContent = 'Tạm dừng';
+            }
+        }
+
+        function updateTimer() {
+            if (tmRemainingSeconds <= 0) {
+                clearInterval(tmInterval);
+                tmIsRunning = false;
+                playAlarmSound();
+                alertTimerEnd();
+                resetTimer();
+                return;
+            }
+
+            tmRemainingSeconds--;
+            renderTimerDisplay();
+        }
+
+        function renderTimerDisplay() {
+            const hrs = Math.floor(tmRemainingSeconds / 3600);
+            const mins = Math.floor((tmRemainingSeconds % 3600) / 60);
+            const secs = tmRemainingSeconds % 60;
+
+            document.getElementById('timer-display').textContent = 
+                `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            // Update Circle progress
+            const offset = circumference - (tmRemainingSeconds / tmTotalSeconds) * circumference;
+            ringCircle.style.strokeDashoffset = isNaN(offset) ? 0 : offset;
+        }
+
+        function setTimerPreset(mins) {
+            resetTimer();
+            document.getElementById('tm-hours').value = 0;
+            document.getElementById('tm-mins').value = mins;
+            document.getElementById('tm-secs').value = 0;
+            
+            tmTotalSeconds = mins * 60;
+            tmRemainingSeconds = tmTotalSeconds;
+            renderTimerDisplay();
+        }
+
+        function resetTimer() {
+            clearInterval(tmInterval);
+            tmIsRunning = false;
+            tmRemainingSeconds = 0;
+            tmTotalSeconds = 0;
+
+            document.getElementById('timer-display').textContent = '00:00:00';
+            document.getElementById('timer-status').textContent = 'Sẵn sàng';
+            ringCircle.style.strokeDashoffset = 0;
+
+            const startBtn = document.getElementById('tm-start-btn');
+            startBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            startBtn.classList.replace('bg-amber-500', 'bg-accent');
+        }
+
+        function playAlarmSound() {
+            const audio = document.getElementById('alarm-sound');
+            audio.play().catch(() => {
+                // Web Audio API Synth fallback if media play is blocked
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    osc.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 1.5);
+                } catch(e) {}
+            });
+        }
+
+        function alertTimerEnd() {
+            document.getElementById('timer-status').textContent = 'Hết giờ!';
+        }
+
+        /* ----------------------------------------------------
+         * NAVIGATION & UI THEME SWITCHING
+         * ---------------------------------------------------- */
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-accent', 'text-white', 'shadow-accent');
+                el.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`view-${tabName}`).classList.add('flex');
+
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            activeTab.classList.add('bg-accent', 'text-white', 'shadow-accent');
+            activeTab.classList.remove('text-slate-400');
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const body = document.getElementById('app-body');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                body.classList.remove('bg-slate-950', 'text-slate-100');
+                body.classList.add('bg-slate-100', 'text-slate-800');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                body.classList.remove('bg-slate-100', 'text-slate-800');
+                body.classList.add('bg-slate-950', 'text-slate-100');
+            }
+        }
+
+        function setAccentColor(hex, glow) {
+            document.documentElement.style.setProperty('--accent-color', hex);
+            document.documentElement.style.setProperty('--accent-glow', glow);
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
